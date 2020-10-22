@@ -1,20 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { UIManager, Linking, Alert } from 'react-native';
+import React, { useState, useCallback, useMemo } from 'react';
+import { UIManager, Alert } from 'react-native';
 import { authorize, refresh, revoke, prefetchConfiguration } from 'react-native-app-auth';
 import { Page, Button, ButtonContainer, Form, FormLabel, FormValue, Heading } from './components';
 
-import {WebView} from 'react-native-webview';
 
 const configs = {
   identityserver: {
-    issuer: 'https://hungthinhid.ddns.net:9443', //'https://demo.identityserver.io',
-    clientId: 'lM7xJj9W6eXRpF0od8qTfVNb62sa',
-    redirectUrl: 'http://localhost:8080/demo',
-    additionalParameters: {
-      name: "Tony Ne",
-      age: 16,
-      single: true
-    },
+    issuer: 'https://demo.identityserver.io',
+    clientId: 'interactive.public',
+    redirectUrl: 'io.identityserver.demo:/oauthredirect',
+    additionalParameters: {},
     scopes: ['openid', 'profile', 'email', 'offline_access'],
 
     // serviceConfiguration: {
@@ -27,29 +22,30 @@ const configs = {
     // From https://openidconnect.net/
     issuer: 'https://samples.auth0.com',
     clientId: 'kbyuFDidLLm280LIwVFiazOqjO3ty8KH',
+    clientSecret: 'wbac4wAeLlyU1W2N0EzB5jJkYaoa',
     redirectUrl: 'https://openidconnect.net/callback',
     additionalParameters: {},
     scopes: ['openid', 'profile', 'email', 'phone', 'address'],
+
     // serviceConfiguration: {
     //   authorizationEndpoint: 'https://samples.auth0.com/authorize',
     //   tokenEndpoint: 'https://samples.auth0.com/oauth/token',
     //   revocationEndpoint: 'https://samples.auth0.com/oauth/revoke'
     // }
   },
-  hdid: {
-    issuer: 'https://hungthinhid.ddns.net:9443',
-    clientId: 'lM7xJj9W6eXRpF0od8qTfVNb62sa',
-    // From https://openidconnect.net/
-    redirectUrl: 'localhost:8080/demo',
+  htid: {
+    issuer: 'https://localhost:9443',
+    clientId:  'jnFEdwxSSIaf4ogn5XvXLna4mzka', //'lM7xJj9W6eXRpF0od8qTfVNb62sa',
+    redirectUrl: 'org.reactjs.native.example.Example:/oauthredirect',
     additionalParameters: {},
-    scopes: ['openid', 'offline_access'],
-
+    scopes: ['openid', "offline_access"],
     serviceConfiguration: {
-      authorizationEndpoint: 'https://hungthinhid.ddns.net:9443/oauth2/authorize',
-      // tokenEndpoint: 'https://samples.auth0.com/oauth/token',
-      // revocationEndpoint: 'https://samples.auth0.com/oauth/revoke'
-    }
-  }
+      authorizationEndpoint: 'https://localhost:9443/oauth2/authorize',
+      tokenEndpoint: 'https://localhost:9443/oauth2/token',
+    //   // revocationEndpoint: 'http://samples.auth0.com/oauth/revoke'
+      registrationEndpoint: 'https://localhost:9443'
+    },
+  },
 };
 
 const defaultAuthState = {
@@ -65,7 +61,7 @@ const App = () => {
   React.useEffect(() => {
     prefetchConfiguration({
       warmAndPrefetchChrome: true,
-      // ...configs.identityserver
+      ...configs.identityserver
     });
   }, []);
 
@@ -74,13 +70,12 @@ const App = () => {
       try {
         const config = configs[provider];
         const newAuthState = await authorize(config);
-        console.log(newAuthState)
+console.log(newAuthState)
         setAuthState({
           hasLoggedInOnce: true,
           provider: provider,
           ...newAuthState
         });
-        
       } catch (error) {
         Alert.alert('Failed to log in', error.message);
       }
@@ -135,7 +130,6 @@ const App = () => {
     return false;
   }, [authState]);
 
-  // return <WebView source={{uri:'https://hungthinhid.ddns.net:9443/oauth2/authorize?response_type=code&scope=openid offline_access&client_id=lM7xJj9W6eXRpF0od8qTfVNb62sa&redirect_uri=http://localhost:8080/demo'}} />
   return (
     <Page>
       {!!authState.accessToken ? (
@@ -157,12 +151,17 @@ const App = () => {
         {!authState.accessToken ? (
           <>
             <Button
+              onPress={() => handleAuthorize('identityserver')}
+              text="Authorize IdentityServer"
+              color="#DA2536"
+            />
+            <Button
               onPress={() => handleAuthorize('auth0')}
               text="Authorize Auth0"
               color="#DA2536"
             />
             <Button
-              onPress={() => handleAuthorize('hdid')}
+              onPress={() => handleAuthorize('htid')}
               text="Authorize HTID"
               color="#DA2536"
             />

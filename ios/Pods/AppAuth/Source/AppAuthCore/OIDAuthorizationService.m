@@ -39,7 +39,7 @@
 /*! @brief Path appended to an OpenID Connect issuer for discovery
     @see https://openid.net/specs/openid-connect-discovery-1_0.html#ProviderConfig
  */
-static NSString *const kOpenIDConfigurationWellKnownPath = @"";
+static NSString *const kOpenIDConfigurationWellKnownPath = @".well-known/openid-configuration";
 
 /*! @brief Max allowable iat (Issued At) time skew
     @see https://openid.net/specs/openid-connect-core-1_0.html#IDTokenValidation

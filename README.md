@@ -7,7 +7,7 @@
 After cloning the repository, run the following:
 
 ```sh
-cd react-native-app-auth
+cd react-native-app-auth/Example
 yarn
 (cd ios && pod install)
 npx react-native run-ios
@@ -18,7 +18,7 @@ npx react-native run-ios
 After cloning the repository, run the following:
 
 ```sh
-cd react-native-app-auth
+cd react-native-app-auth/Example
 yarn
 npx react-native run-android
 ```
