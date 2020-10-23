@@ -1,8 +1,21 @@
-import React, { useState, useCallback, useMemo } from 'react';
-import { UIManager, Alert } from 'react-native';
-import { authorize, refresh, revoke, prefetchConfiguration } from 'react-native-app-auth';
-import { Page, Button, ButtonContainer, Form, FormLabel, FormValue, Heading } from './components';
-
+import React, {useState, useCallback, useMemo} from 'react';
+import {UIManager, View, Alert} from 'react-native';
+import {
+  authorize,
+  refresh,
+  revoke,
+  prefetchConfiguration,
+} from 'react-native-app-auth';
+import {
+  Page,
+  Button,
+  ButtonContainer,
+  Form,
+  FormLabel,
+  FormValue,
+  Heading,
+} from './components';
+import jwt_decode from 'jwt-decode';
 
 const configs = {
   identityserver: {
@@ -33,17 +46,25 @@ const configs = {
     //   revocationEndpoint: 'https://samples.auth0.com/oauth/revoke'
     // }
   },
+  gg: {
+    issuer: 'https://accounts.google.com',
+    clientId:
+      '511828570984-7nmej36h9j2tebiqmpqh835naet4vci4.apps.googleusercontent.com',
+    redirectUrl:
+      'com.googleusercontent.apps.511828570984-7nmej36h9j2tebiqmpqh835naet4vci4:/oauth2redirect/google',
+    scopes: ['openid', 'profile', 'email'],
+  },
   htid: {
-    issuer: 'https://localhost:9443',
-    clientId:  'jnFEdwxSSIaf4ogn5XvXLna4mzka', //'lM7xJj9W6eXRpF0od8qTfVNb62sa',
-    redirectUrl: 'org.reactjs.native.example.Example:/oauthredirect',
+    issuer: 'https://vominhvo.tech',
+    clientId: 'cF5f8xep8Fj9Fmsb9pT0IuMHfJMa',
+    redirectUrl: 'org.reactjs.native.example.Example:/redirect',
     additionalParameters: {},
-    scopes: ['openid', "offline_access"],
+    scopes: ['openid', 'profile', 'phone', 'email', 'offline_access'],
     serviceConfiguration: {
-      authorizationEndpoint: 'https://localhost:9443/oauth2/authorize',
-      tokenEndpoint: 'https://localhost:9443/oauth2/token',
-    //   // revocationEndpoint: 'http://samples.auth0.com/oauth/revoke'
-      registrationEndpoint: 'https://localhost:9443'
+      authorizationEndpoint: 'https://vominhvo.tech/oauth2/authorize',
+      tokenEndpoint: 'https://vominhvo.tech/oauth2/token',
+      revocationEndpoint: 'https://vominhvo.tech/oauth2/revoke',
+      registrationEndpoint: 'https://vominhvo.tech',
     },
   },
 };
@@ -53,7 +74,7 @@ const defaultAuthState = {
   provider: '',
   accessToken: '',
   accessTokenExpirationDate: '',
-  refreshToken: ''
+  refreshToken: '',
 };
 
 const App = () => {
@@ -61,7 +82,7 @@ const App = () => {
   React.useEffect(() => {
     prefetchConfiguration({
       warmAndPrefetchChrome: true,
-      ...configs.identityserver
+      ...configs.identityserver,
     });
   }, []);
 
@@ -70,32 +91,32 @@ const App = () => {
       try {
         const config = configs[provider];
         const newAuthState = await authorize(config);
-console.log(newAuthState)
+        console.log(newAuthState, provider);
         setAuthState({
           hasLoggedInOnce: true,
           provider: provider,
-          ...newAuthState
+          ...newAuthState,
         });
       } catch (error) {
-        Alert.alert('Failed to log in', error.message);
+        // Alert.alert('Failed to log in', error.message);
+        console.log('Failed to log in', error.message);
       }
     },
-    [authState]
+    [authState],
   );
 
   const handleRefresh = useCallback(async () => {
     try {
       const config = configs[authState.provider];
       const newAuthState = await refresh(config, {
-        refreshToken: authState.refreshToken
+        refreshToken: authState.refreshToken,
       });
 
       setAuthState(current => ({
         ...current,
         ...newAuthState,
-        refreshToken: newAuthState.refreshToken || current.refreshToken
-      }))
-
+        refreshToken: newAuthState.refreshToken || current.refreshToken,
+      }));
     } catch (error) {
       Alert.alert('Failed to refresh token', error.message);
     }
@@ -106,14 +127,14 @@ console.log(newAuthState)
       const config = configs[authState.provider];
       await revoke(config, {
         tokenToRevoke: authState.accessToken,
-        sendClientId: true
+        sendClientId: true,
       });
 
       setAuthState({
         provider: '',
         accessToken: '',
         accessTokenExpirationDate: '',
-        refreshToken: ''
+        refreshToken: '',
       });
     } catch (error) {
       Alert.alert('Failed to revoke token', error.message);
@@ -129,11 +150,21 @@ console.log(newAuthState)
     }
     return false;
   }, [authState]);
-
+  const decoded = !!authState.accessToken ? jwt_decode(authState.idToken) : '';
+  console.log(decoded);
+  const name = decoded.name ?? '';
+  const email = decoded.email ?? '';
+  const telephone = decoded.phone_number ?? '';
   return (
     <Page>
       {!!authState.accessToken ? (
         <Form>
+          <FormLabel>Name</FormLabel>
+          <FormValue>{name}</FormValue>
+          <FormLabel>Email</FormLabel>
+          <FormValue>{email}</FormValue>
+          <FormLabel>Telephone</FormLabel>
+          <FormValue>{telephone}</FormValue>
           <FormLabel>accessToken</FormLabel>
           <FormValue>{authState.accessToken}</FormValue>
           <FormLabel>accessTokenExpirationDate</FormLabel>
@@ -144,28 +175,40 @@ console.log(newAuthState)
           <FormValue>{authState.scopes.join(', ')}</FormValue>
         </Form>
       ) : (
-        <Heading>{authState.hasLoggedInOnce ? 'Goodbye.' : 'Hello, stranger.'}</Heading>
+        <Heading>
+          {authState.hasLoggedInOnce ? 'Goodbye.' : 'Hello, stranger.'}
+        </Heading>
       )}
 
       <ButtonContainer>
         {!authState.accessToken ? (
-          <>
+          <View style={{flex: 1, flexWrap: 'wrap', flexDirection: 'row'}}>
             <Button
               onPress={() => handleAuthorize('identityserver')}
-              text="Authorize IdentityServer"
-              color="#DA2536"
+              text="IdentityServer"
+              color="#2980B9"
+              style={{flex: 1}}
             />
             <Button
               onPress={() => handleAuthorize('auth0')}
-              text="Authorize Auth0"
-              color="#DA2536"
+              text="Auth0"
+              color="#eb5524"
+              style={{flex: 1}}
+            />
+
+            <Button
+              onPress={() => handleAuthorize('gg')}
+              text="Google"
+              color="#4285f3"
+              style={{flex: 1}}
             />
             <Button
               onPress={() => handleAuthorize('htid')}
-              text="Authorize HTID"
-              color="#DA2536"
+              text="HTID"
+              color="#f7941c"
+              style={{flex: 1}}
             />
-          </>
+          </View>
         ) : null}
         {!!authState.refreshToken ? (
           <Button onPress={handleRefresh} text="Refresh" color="#24C2CB" />
@@ -176,6 +219,6 @@ console.log(newAuthState)
       </ButtonContainer>
     </Page>
   );
-}
+};
 
 export default App;

@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { FlatList, StyleSheet, View } from 'react-native';
 
 const ButtonContainer = props => <View style={styles.view} {...props} />;
 
@@ -9,9 +9,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    alignSelf: 'flex-end',
+    alignSelf: 'center',
     flexDirection: 'row',
-    margin: 5
+    margin: 5,
   }
 });
 
