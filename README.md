@@ -2,10 +2,17 @@
 
 ![Demo](demo.gif)
 
+
+
+PRE_STEPS:
+
+```sh
+Install NodeJS 
+Install React Native First by follow here: https://reactnative.dev/docs/0.61/getting-started
+Install Cocoapods by type: sudo gem install cocoapods
+```
 ## Running the iOS app
-
 After cloning the repository, run the following:
-
 ```sh
 cd react-native-app-auth/Example
 yarn
