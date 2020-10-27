@@ -1,11 +1,12 @@
-import React, {useState, useCallback, useMemo} from 'react';
-import {UIManager, View, Alert} from 'react-native';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { UIManager, View, Alert, AsyncStorage } from "react-native";
 import {
   authorize,
   refresh,
   revoke,
   prefetchConfiguration,
-} from 'react-native-app-auth';
+  register,
+} from "react-native-app-auth";
 import {
   Page,
   Button,
@@ -14,16 +15,16 @@ import {
   FormLabel,
   FormValue,
   Heading,
-} from './components';
-import jwt_decode from 'jwt-decode';
+} from "./components";
+import jwt_decode from "jwt-decode";
 
 const configs = {
   identityserver: {
-    issuer: 'https://demo.identityserver.io',
-    clientId: 'interactive.public',
-    redirectUrl: 'io.identityserver.demo:/oauthredirect',
+    issuer: "https://demo.identityserver.io",
+    clientId: "interactive.public",
+    redirectUrl: "io.identityserver.demo:/oauthredirect",
     additionalParameters: {},
-    scopes: ['openid', 'profile', 'email', 'offline_access'],
+    scopes: ["openid", "profile", "email", "offline_access"],
 
     // serviceConfiguration: {
     //   authorizationEndpoint: 'https://demo.identityserver.io/connect/authorize',
@@ -33,12 +34,12 @@ const configs = {
   },
   auth0: {
     // From https://openidconnect.net/
-    issuer: 'https://samples.auth0.com',
-    clientId: 'kbyuFDidLLm280LIwVFiazOqjO3ty8KH',
-    clientSecret: 'wbac4wAeLlyU1W2N0EzB5jJkYaoa',
-    redirectUrl: 'https://openidconnect.net/callback',
+    issuer: "https://samples.auth0.com",
+    clientId: "kbyuFDidLLm280LIwVFiazOqjO3ty8KH",
+    clientSecret: "wbac4wAeLlyU1W2N0EzB5jJkYaoa",
+    redirectUrl: "https://openidconnect.net/callback",
     additionalParameters: {},
-    scopes: ['openid', 'profile', 'email', 'phone', 'address'],
+    scopes: ["openid", "profile", "email", "phone", "address"],
 
     // serviceConfiguration: {
     //   authorizationEndpoint: 'https://samples.auth0.com/authorize',
@@ -47,34 +48,35 @@ const configs = {
     // }
   },
   gg: {
-    issuer: 'https://accounts.google.com',
+    issuer: "https://accounts.google.com",
     clientId:
-      '511828570984-7nmej36h9j2tebiqmpqh835naet4vci4.apps.googleusercontent.com',
+      "511828570984-7nmej36h9j2tebiqmpqh835naet4vci4.apps.googleusercontent.com",
     redirectUrl:
-      'com.googleusercontent.apps.511828570984-7nmej36h9j2tebiqmpqh835naet4vci4:/oauth2redirect/google',
-    scopes: ['openid', 'profile', 'email'],
+      "com.googleusercontent.apps.511828570984-7nmej36h9j2tebiqmpqh835naet4vci4:/oauth2redirect/google",
+    scopes: ["openid", "profile", "email"],
   },
   htid: {
-    issuer: 'https://vominhvo.tech',
-    clientId: 'cF5f8xep8Fj9Fmsb9pT0IuMHfJMa',
-    redirectUrl: 'org.reactjs.native.example.Example:/redirect',
+    issuer: "https://htid.hungthinhcorp.com.vn",
+    clientId: "jEUbwJtQrlWHVvphP2XsG9Zgjq8a",
+    redirectUrl: "org.reactjs.native.example.Example:/redirect",
     additionalParameters: {},
-    scopes: ['openid', 'profile', 'phone', 'email', 'offline_access'],
+    scopes: ["openid", "profile", "phone", "email", "offline_access"],
     serviceConfiguration: {
-      authorizationEndpoint: 'https://vominhvo.tech/oauth2/authorize',
-      tokenEndpoint: 'https://vominhvo.tech/oauth2/token',
-      revocationEndpoint: 'https://vominhvo.tech/oauth2/revoke',
-      registrationEndpoint: 'https://vominhvo.tech',
+      authorizationEndpoint: "https://htid.hungthinhcorp.com.vn/oauth2/authorize",
+      tokenEndpoint: "https://htid.hungthinhcorp.com.vn/oauth2/token",
+      revocationEndpoint: "https://htid.hungthinhcorp.com.vn/oauth2/revoke",
+      registrationEndpoint:
+        "https://htid.hungthinhcorp.com.vn/authenticationendpoint/login.do",
     },
   },
 };
 
 const defaultAuthState = {
   hasLoggedInOnce: false,
-  provider: '',
-  accessToken: '',
-  accessTokenExpirationDate: '',
-  refreshToken: '',
+  provider: "",
+  accessToken: "",
+  accessTokenExpirationDate: "",
+  refreshToken: "",
 };
 
 const App = () => {
@@ -87,11 +89,11 @@ const App = () => {
   }, []);
 
   const handleAuthorize = useCallback(
-    async provider => {
+    async (provider) => {
       try {
         const config = configs[provider];
         const newAuthState = await authorize(config);
-        console.log(newAuthState, provider);
+        console.log("authorize", newAuthState, provider);
         setAuthState({
           hasLoggedInOnce: true,
           provider: provider,
@@ -99,10 +101,10 @@ const App = () => {
         });
       } catch (error) {
         // Alert.alert('Failed to log in', error.message);
-        console.log('Failed to log in', error.message);
+        console.log("Failed to log in", error.message);
       }
     },
-    [authState],
+    [authState]
   );
 
   const handleRefresh = useCallback(async () => {
@@ -112,13 +114,13 @@ const App = () => {
         refreshToken: authState.refreshToken,
       });
 
-      setAuthState(current => ({
+      setAuthState((current) => ({
         ...current,
         ...newAuthState,
         refreshToken: newAuthState.refreshToken || current.refreshToken,
       }));
     } catch (error) {
-      Alert.alert('Failed to refresh token', error.message);
+      Alert.alert("Failed to refresh token", error.message);
     }
   }, [authState]);
 
@@ -131,15 +133,34 @@ const App = () => {
       });
 
       setAuthState({
-        provider: '',
-        accessToken: '',
-        accessTokenExpirationDate: '',
-        refreshToken: '',
+        provider: "",
+        accessToken: "",
+        accessTokenExpirationDate: "",
+        refreshToken: "",
       });
     } catch (error) {
-      Alert.alert('Failed to revoke token', error.message);
+      Alert.alert("Failed to revoke token", error.message);
     }
   }, [authState]);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      const newAuth = await fetch(`https://vominhvo.tech/oidc/logout`);
+      // console.log(newAuth.status)
+      if (newAuth.status == 200) {
+        setAuthState({
+          provider: "",
+          accessToken: "",
+          accessTokenExpirationDate: "",
+          refreshToken: "",
+        });
+      }
+    } catch (error) {
+      Alert.alert("Failed to logout", error.message);
+    }
+  }, [authState]);
+
+  // console.log(AsyncStorage.getAllKeys());
 
   const showRevoke = useMemo(() => {
     if (authState.accessToken) {
@@ -150,11 +171,12 @@ const App = () => {
     }
     return false;
   }, [authState]);
-  const decoded = !!authState.accessToken ? jwt_decode(authState.idToken) : '';
+  const decoded = !!authState.accessToken ? jwt_decode(authState.idToken) : "";
   console.log(decoded);
-  const name = decoded.name ?? '';
-  const email = decoded.email ?? '';
-  const telephone = decoded.phone_number ?? '';
+  const name = decoded.name ?? "";
+  const email = decoded.email ?? "";
+  const telephone = decoded.phone_number ?? "";
+
   return (
     <Page>
       {!!authState.accessToken ? (
@@ -172,50 +194,74 @@ const App = () => {
           <FormLabel>refreshToken</FormLabel>
           <FormValue>{authState.refreshToken}</FormValue>
           <FormLabel>scopes</FormLabel>
-          <FormValue>{authState.scopes.join(', ')}</FormValue>
+          <FormValue>{authState.scopes.join(", ")}</FormValue>
         </Form>
       ) : (
         <Heading>
-          {authState.hasLoggedInOnce ? 'Goodbye.' : 'Hello, stranger.'}
+          {authState.hasLoggedInOnce ? "Goodbye." : "Hello, stranger."}
         </Heading>
       )}
 
       <ButtonContainer>
         {!authState.accessToken ? (
-          <View style={{flex: 1, flexWrap: 'wrap', flexDirection: 'row'}}>
+          <View
+            style={{
+              width: "100%",
+            }}
+          >
             <Button
-              onPress={() => handleAuthorize('identityserver')}
-              text="IdentityServer"
-              color="#2980B9"
-              style={{flex: 1}}
+              onPress={() => handleAuthorize("htid")}
+              text="HTID"
+              color="#f7941c"
+              style={{ width: "100%" }}
             />
             <Button
-              onPress={() => handleAuthorize('auth0')}
+              onPress={() => handleAuthorize("identityserver")}
+              text="IdentityServer"
+              color="#2980B9"
+              style={{ width: "100%" }}
+            />
+            <Button
+              onPress={() => handleAuthorize("auth0")}
               text="Auth0"
               color="#eb5524"
-              style={{flex: 1}}
+              style={{ width: "100%" }}
             />
 
             <Button
-              onPress={() => handleAuthorize('gg')}
+              onPress={() => handleAuthorize("gg")}
               text="Google"
               color="#4285f3"
-              style={{flex: 1}}
-            />
-            <Button
-              onPress={() => handleAuthorize('htid')}
-              text="HTID"
-              color="#f7941c"
-              style={{flex: 1}}
+              style={{ width: "100%" }}
             />
           </View>
         ) : null}
-        {!!authState.refreshToken ? (
-          <Button onPress={handleRefresh} text="Refresh" color="#24C2CB" />
-        ) : null}
-        {showRevoke ? (
-          <Button onPress={handleRevoke} text="Revoke" color="#EF525B" />
-        ) : null}
+        <View style={{ flex: 1, flexDirection: "row" }}>
+          {!!authState.refreshToken ? (
+            <Button
+              onPress={handleRefresh}
+              style={{ flex: 1 }}
+              text="Refresh"
+              color="#24C2CB"
+            />
+          ) : null}
+          {showRevoke ? (
+            <Button
+              onPress={handleRevoke}
+              style={{ flex: 1 }}
+              text="Revoke"
+              color="#EF525B"
+            />
+          ) : null}
+          {showRevoke ? (
+            <Button
+              onPress={handleLogout}
+              style={{ flex: 1 }}
+              text="Logout"
+              color="#EF525B"
+            />
+          ) : null}
+        </View>
       </ButtonContainer>
     </Page>
   );

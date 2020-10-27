@@ -1,11 +1,11 @@
 import React from 'react';
 import {Image, Platform, StyleSheet, TouchableOpacity, Text } from 'react-native';
 
-const Button = ({ image, text, color, onPress }) => (
+const Button = ({ image, text, color, style, onPress }) => (
   <TouchableOpacity
     activeOpacity={0.8}
     onPress={onPress}
-    style={[styles.buttonBox, { backgroundColor: color }]}
+    style={[styles.buttonBox, { backgroundColor: color }, style && style]}
   >
     {image && <Image source={image} />}
     <Text style={styles.text}>{text}</Text>
@@ -22,7 +22,8 @@ const styles = StyleSheet.create({
     margin: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    width: '95%'
+    // width: '95%',
+    // flex: 1,
   }
 });
 
