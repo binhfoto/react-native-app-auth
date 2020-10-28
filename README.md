@@ -37,3 +37,9 @@ Note that you have to have the emulator open before running the last command. If
 # 1. Register was be hold when creating a user
 Fix: Go to Identity Providers -> Resident -> "Account Management Policies" Tab -> User self registration callback URL regex	
 https://yourdomain:443/authenticationendpoint/login.do (SSL)
+
+#2. To logout 
+You should add to your config with this information:
+```sh
+additionalParameters: {prompt: 'login'},
+```

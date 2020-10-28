@@ -60,7 +60,7 @@ const configs = {
     issuer: "https://htid.hungthinhcorp.com.vn",
     clientId: "jEUbwJtQrlWHVvphP2XsG9Zgjq8a",
     redirectUrl: "org.reactjs.native.example.Example:/redirect",
-    additionalParameters: {},
+    additionalParameters: {prompt: 'login'},
     scopes: ["openid", "profile", "phone", "email", "offline_access"],
     serviceConfiguration: {
       authorizationEndpoint:
@@ -146,18 +146,13 @@ const App = () => {
     }
   }, [authState]);
 
-  const handleLogout = useCallback(async () => {
+  const handleLogout = useCallback(() => {
     try {
-      const newAuth = await fetch(`https://vominhvo.tech/oidc/logout`);
-      // console.log(newAuth.status)
-      if (newAuth.status == 200) {
-        setAuthState({
-          provider: "",
-          accessToken: "",
-          accessTokenExpirationDate: "",
-          refreshToken: "",
-        });
-      }
+      axios
+        .get(`https://htid.hungthinhcorp.com.vn/oidc/logout`)
+        .then((response) => console.log(response))
+        .catch((err) => console.log(err));
+    
     } catch (error) {
       Alert.alert("Failed to logout", error.message);
     }
@@ -199,14 +194,17 @@ const App = () => {
     return false;
   }, [authState]);
   const decoded = !!authState.accessToken ? jwt_decode(authState.idToken) : "";
-  console.log(decoded);
+  console.log('decoded', decoded);
   const name = decoded.name ?? "";
   const email = decoded.email ?? "";
   const telephone = decoded.phone_number ?? "";
 
   return (
-    <ScrollView contentContainerStyle={{ flex: 1 }}>
-      <Page>
+    <Page>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 20, paddingBottom: 50 }}
+      >
         {!!authState.accessToken ? (
           <Form>
             <FormLabel>Name</FormLabel>
@@ -224,91 +222,92 @@ const App = () => {
             <FormLabel>scopes</FormLabel>
             <FormValue>{authState.scopes.join(", ")}</FormValue>
             <FormLabel>Profile</FormLabel>
-            {Object.keys(profile).map((item, index) => {
-              return (
-                <FormValue key={index}>
-                  {item} : {profile[item]}
-                </FormValue>
-              );
-            })}
+            <View style={{ flex: 1 }}>
+              {Object.keys(profile).map((item, index) => {
+                return (
+                  <FormValue key={index}>
+                    {item} : {profile[item]}
+                  </FormValue>
+                );
+              })}
+            </View>
           </Form>
         ) : (
           <Heading>
             {authState.hasLoggedInOnce ? "Goodbye." : "Hello, stranger."}
           </Heading>
         )}
+      </ScrollView>
+      <ButtonContainer>
+        {!authState.accessToken ? (
+          <View
+            style={{
+              width: "100%",
+            }}
+          >
+            <Button
+              onPress={() => handleAuthorize("htid")}
+              text="HTID"
+              color="#f7941c"
+              style={{ width: "100%" }}
+            />
+            <Button
+              onPress={() => handleAuthorize("identityserver")}
+              text="IdentityServer"
+              color="#2980B9"
+              style={{ width: "100%" }}
+            />
+            <Button
+              onPress={() => handleAuthorize("auth0")}
+              text="Auth0"
+              color="#eb5524"
+              style={{ width: "100%" }}
+            />
 
-        <ButtonContainer>
-          {!authState.accessToken ? (
-            <View
-              style={{
-                width: "100%",
-              }}
-            >
-              <Button
-                onPress={() => handleAuthorize("htid")}
-                text="HTID"
-                color="#f7941c"
-                style={{ width: "100%" }}
-              />
-              <Button
-                onPress={() => handleAuthorize("identityserver")}
-                text="IdentityServer"
-                color="#2980B9"
-                style={{ width: "100%" }}
-              />
-              <Button
-                onPress={() => handleAuthorize("auth0")}
-                text="Auth0"
-                color="#eb5524"
-                style={{ width: "100%" }}
-              />
-
-              <Button
-                onPress={() => handleAuthorize("gg")}
-                text="Google"
-                color="#4285f3"
-                style={{ width: "100%" }}
-              />
-            </View>
-          ) : null}
-          <View style={{ flex: 1, flexDirection: "row" }}>
-            {!!authState ? (
-              <Button
-                onPress={handleFetchProfile}
-                style={{ flex: 1 }}
-                text="Profile"
-                color="#24C2CB"
-              />
-            ) : null}
-            {!!authState.refreshToken ? (
-              <Button
-                onPress={handleRefresh}
-                style={{ flex: 1 }}
-                text="Refresh"
-                color="#24C2CB"
-              />
-            ) : null}
-            {showRevoke ? (
-              <Button
-                onPress={handleRevoke}
-                style={{ flex: 1 }}
-                text="Revoke"
-                color="#EF525B"
-              />
-            ) : null}
-            {showRevoke ? (
-              <Button
-                onPress={handleLogout}
-                style={{ flex: 1 }}
-                text="Logout"
-                color="#EF525B"
-              />
-            ) : null}
+            <Button
+              onPress={() => handleAuthorize("gg")}
+              text="Google"
+              color="#4285f3"
+              style={{ width: "100%" }}
+            />
           </View>
-        </ButtonContainer>
-      </Page>
-    </ScrollView>
+        ) : null}
+        <View style={{ flex: 1, flexDirection: "row" }}>
+          {!!authState ? (
+            <Button
+              onPress={handleFetchProfile}
+              style={{ flex: 1 }}
+              text="Profile"
+              color="#24C2CB"
+            />
+          ) : null}
+          {!!authState.refreshToken ? (
+            <Button
+              onPress={handleRefresh}
+              style={{ flex: 1 }}
+              text="Refresh"
+              color="#24C2CB"
+            />
+          ) : null}
+          {showRevoke ? (
+            <Button
+              onPress={handleRevoke}
+              style={{ flex: 1 }}
+              text="Revoke"
+              color="#EF525B"
+            />
+          ) : null}
+          {/*showRevoke ? (
+            <Button
+              onPress={handleLogout}
+              style={{ flex: 1 }}
+              text="Logout"
+              color="#EF525B"
+            />
+          ) : null*/}
+        </View>
+      </ButtonContainer>
+    </Page>
   );
 };
 
