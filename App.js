@@ -18,6 +18,8 @@ import {
 } from "./components";
 import jwt_decode from "jwt-decode";
 import axios from "axios";
+import MessageQueue from 'react-native/Libraries/BatchedBridge/MessageQueue'; 
+MessageQueue.spy(true);
 
 const configs = {
   identityserver: {
@@ -34,7 +36,6 @@ const configs = {
     // }
   },
   auth0: {
-    // From https://openidconnect.net/
     issuer: "https://samples.auth0.com",
     clientId: "kbyuFDidLLm280LIwVFiazOqjO3ty8KH",
     clientSecret: "wbac4wAeLlyU1W2N0EzB5jJkYaoa",
@@ -60,7 +61,7 @@ const configs = {
     issuer: "https://htid.hungthinhcorp.com.vn",
     clientId: "jEUbwJtQrlWHVvphP2XsG9Zgjq8a",
     redirectUrl: "org.reactjs.native.example.Example:/redirect",
-    additionalParameters: {prompt: 'login'},
+    additionalParameters: {},
     scopes: ["openid", "profile", "phone", "email", "offline_access"],
     serviceConfiguration: {
       authorizationEndpoint:
@@ -69,6 +70,21 @@ const configs = {
       revocationEndpoint: "https://htid.hungthinhcorp.com.vn/oauth2/revoke",
       // registrationEndpoint:
       //   "https://htid.hungthinhcorp.com.vn/authenticationendpoint/login.do",
+    },
+  },
+};
+
+const configsLogout = {
+  htid: {
+    issuer: "https://htid.hungthinhcorp.com.vn",
+    clientId: "jEUbwJtQrlWHVvphP2XsG9Zgjq8a",
+    redirectUrl: "org.reactjs.native.example.Example:/redirect",
+    additionalParameters: {prompt: 'logout'},
+    scopes: ["openid", "profile", "phone", "email", "offline_access"],
+    serviceConfiguration: {
+      authorizationEndpoint: "https://htid.hungthinhcorp.com.vn/oidc/logout",
+      tokenEndpoint: "https://htid.hungthinhcorp.com.vn/oauth2/token",
+      revocationEndpoint: "https://htid.hungthinhcorp.com.vn/oauth2/revoke",
     },
   },
 };
@@ -146,17 +162,25 @@ const App = () => {
     }
   }, [authState]);
 
-  const handleLogout = useCallback(() => {
-    try {
-      axios
-        .get(`https://htid.hungthinhcorp.com.vn/oidc/logout`)
-        .then((response) => console.log(response))
-        .catch((err) => console.log(err));
-    
-    } catch (error) {
-      Alert.alert("Failed to logout", error.message);
-    }
-  }, [authState]);
+  const handleLogout = useCallback(
+    async (provider) => {
+      try {
+        const config = configsLogout[provider];
+        const newAuthState = await authorize(config);
+        console.log("logout", newAuthState, provider);
+        setAuthState({
+          provider: "",
+          accessToken: "",
+          accessTokenExpirationDate: "",
+          refreshToken: "",
+        });
+      } catch (error) {
+        // Alert.alert('Failed to log in', error.message);
+        console.log("Failed to log out", error.message);
+      }
+    },
+    [authState]
+  );
 
   const handleFetchProfile = useCallback(() => {
     try {
@@ -194,7 +218,7 @@ const App = () => {
     return false;
   }, [authState]);
   const decoded = !!authState.accessToken ? jwt_decode(authState.idToken) : "";
-  console.log('decoded', decoded);
+  console.log("decoded", decoded);
   const name = decoded.name ?? "";
   const email = decoded.email ?? "";
   const telephone = decoded.phone_number ?? "";
@@ -248,28 +272,29 @@ const App = () => {
             <Button
               onPress={() => handleAuthorize("htid")}
               text="HTID"
+              textColor
               color="#f7941c"
               style={{ width: "100%" }}
             />
-            <Button
-              onPress={() => handleAuthorize("identityserver")}
-              text="IdentityServer"
-              color="#2980B9"
-              style={{ width: "100%" }}
-            />
-            <Button
-              onPress={() => handleAuthorize("auth0")}
-              text="Auth0"
-              color="#eb5524"
-              style={{ width: "100%" }}
-            />
+            {/*<Button*/}
+            {/*  onPress={() => handleAuthorize("identityserver")}*/}
+            {/*  text="IdentityServer"*/}
+            {/*  color="#2980B9"*/}
+            {/*  style={{ width: "100%" }}*/}
+            {/*/>*/}
+            {/*<Button*/}
+            {/*  onPress={() => handleAuthorize("auth0")}*/}
+            {/*  text="Auth0"*/}
+            {/*  color="#eb5524"*/}
+            {/*  style={{ width: "100%" }}*/}
+            {/*/>*/}
 
-            <Button
-              onPress={() => handleAuthorize("gg")}
-              text="Google"
-              color="#4285f3"
-              style={{ width: "100%" }}
-            />
+            {/*<Button*/}
+            {/*  onPress={() => handleAuthorize("gg")}*/}
+            {/*  text="Google"*/}
+            {/*  color="#4285f3"*/}
+            {/*  style={{ width: "100%" }}*/}
+            {/*/>*/}
           </View>
         ) : null}
         <View style={{ flex: 1, flexDirection: "row" }}>
@@ -297,14 +322,14 @@ const App = () => {
               color="#EF525B"
             />
           ) : null}
-          {/*showRevoke ? (
+          {showRevoke ? (
             <Button
-              onPress={handleLogout}
+              onPress={() => handleLogout("htid")}
               style={{ flex: 1 }}
               text="Logout"
               color="#EF525B"
             />
-          ) : null*/}
+          ) : null}
         </View>
       </ButtonContainer>
     </Page>
